@@ -32,24 +32,19 @@ tickers = {
 end_date = datetime.today()
 start_date = end_date - timedelta(days=365)
 
-# 데이터 캐싱 처리 (KeyError 방지를 위해 로직 개편)
+# 데이터 캐싱 처리
 @st.cache_data
 def load_stock_data(ticker_dict, start, end):
     df_list = []
     for name, ticker in ticker_dict.items():
         try:
-            # 주가 다운로드
             data = yf.download(ticker, start=start, end=end)
-            
             if not data.empty:
-                # 최신 yfinance의 MultiIndex 컬럼 골칫거리를 해결하기 위해 단일 컬럼 추출
                 if isinstance(data.columns, pd.MultiIndex):
-                    # ('Close', 'TSLA') 형태인 경우 'Close' 레벨만 가져옴
                     close_data = data['Close'][ticker].copy()
                 else:
                     close_data = data['Close'].copy()
                 
-                # 1차원 Series로 확실하게 만들고 이름을 우리가 지정한 한글 이름으로 변경
                 close_series = pd.Series(close_data.values.flatten(), index=close_data.index, name=name)
                 df_list.append(close_series)
         except Exception as e:
@@ -58,7 +53,6 @@ def load_stock_data(ticker_dict, start, end):
     if not df_list:
         return pd.DataFrame()
         
-    # 데이터 병합 및 날짜 정렬 경고 해결
     full_df = pd.concat(df_list, axis=1).sort_index()
     full_df.index = pd.to_datetime(full_df.index).date
     return full_df
@@ -103,7 +97,15 @@ else:
                     
                     currency = "₩" if "삼성" in company or "하이닉스" in company else "$"
                     
+                    # 💡 SyntaxError가 났던 f-string 부분을 한 줄로 안전하게 수정했습니다.
+                    display_value = f"{currency} {current_price:,.0f}" if currency == "₩" else f"{currency} {current_price:,.2f}"
+                    
                     with cols[i]:
                         st.metric(
                             label=company,
-                            value=f"{currency} {
+                            value=display_value,
+                            delta=f"{delta_percent:+.2f}% (전일 대비)"
+                        )
+        st.markdown("---")
+
+        # ----------------- 차트
