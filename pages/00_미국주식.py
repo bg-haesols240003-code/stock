@@ -63,7 +63,6 @@ with st.spinner("최신 시장 데이터를 동기화하는 중..."):
 # ----------------- 사이드바 설정 -----------------
 st.sidebar.header("⚙️ 대시보드 컨트롤 필터")
 
-# 리스트 컴프리헨션 괄호 꼬임 문제를 원천 방지하기 위해 일반 반복문으로 명확히 분리
 available_companies = []
 for comp in tickers.keys():
     if comp in df.columns:
@@ -72,7 +71,7 @@ for comp in tickers.keys():
 if df.empty or not available_companies:
     st.error("⚠️ 데이터를 불러오지 못했습니다. 잠시 후 다시 시도하거나 앱을 Reboot 해주세요.")
 else:
-    # 💡 에러가 났던 멀티셀렉트의 문법과 상위 조건문 괄호를 확실하게 정돈했습니다.
+    # 💡 괄호가 완벽하게 닫히도록 구조를 정돈했습니다.
     selected_companies = st.sidebar.multiselect(
         "시각화할 기업 선택",
         options=available_companies,
@@ -81,3 +80,26 @@ else:
 
     analysis_type = st.sidebar.radio(
         "차트 스타일 선택",
+        ["상대 플랫 비교 (누적 수익률 %)", "원시 데이터 추이 (원화/달러 구분)"]
+    )
+
+    # ----------------- 상단 핵심 메트릭 -----------------
+    if selected_companies:
+        st.markdown("### 📌 기업별 최근 요약")
+        
+        valid_companies = []
+        for comp in selected_companies:
+            if comp in df.columns:
+                valid_companies.append(comp)
+        
+        if valid_companies:
+            cols = st.columns(len(valid_companies))
+            for i, company in enumerate(valid_companies):
+                comp_data = df[company].dropna()
+                if len(comp_data) >= 2:
+                    current_price = float(comp_data.iloc[-1])
+                    prev_price = float(comp_data.iloc[-2])
+                    delta_price = current_price - prev_price
+                    delta_percent = (delta_price / prev_price) * 100
+                    
+                    currency = "₩" if "삼성" in company or "하이닉스" in company
