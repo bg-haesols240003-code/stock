@@ -40,13 +40,11 @@ def load_stock_data(ticker_dict, start, end):
         try:
             data = yf.download(ticker, start=start, end=end)
             if not data.empty:
-                # 최신 yfinance의 MultiIndex 컬럼 구조 대응
                 if isinstance(data.columns, pd.MultiIndex):
                     close_data = data['Close'][ticker].copy()
                 else:
                     close_data = data['Close'].copy()
                 
-                # 1차원 Series 형태로 확실하게 만들고 한글 이름을 부여
                 close_series = pd.Series(close_data.values.flatten(), index=close_data.index, name=name)
                 df_list.append(close_series)
         except Exception as e:
@@ -55,7 +53,6 @@ def load_stock_data(ticker_dict, start, end):
     if not df_list:
         return pd.DataFrame()
         
-    # 데이터 병합 및 정렬 경고 해결
     full_df = pd.concat(df_list, axis=1).sort_index()
     full_df.index = pd.to_datetime(full_df.index).date
     return full_df
@@ -66,11 +63,21 @@ with st.spinner("최신 시장 데이터를 동기화하는 중..."):
 # ----------------- 사이드바 설정 -----------------
 st.sidebar.header("⚙️ 대시보드 컨트롤 필터")
 
-available_companies = [comp for comp in tickers.keys() if comp in df.columns]
+# 리스트 컴프리헨션 괄호 꼬임 문제를 원천 방지하기 위해 일반 반복문으로 명확히 분리
+available_companies = []
+for comp in tickers.keys():
+    if comp in df.columns:
+        available_companies.append(comp)
 
 if df.empty or not available_companies:
     st.error("⚠️ 데이터를 불러오지 못했습니다. 잠시 후 다시 시도하거나 앱을 Reboot 해주세요.")
 else:
+    # 💡 에러가 났던 멀티셀렉트의 문법과 상위 조건문 괄호를 확실하게 정돈했습니다.
     selected_companies = st.sidebar.multiselect(
         "시각화할 기업 선택",
-        options=available_
+        options=available_companies,
+        default=available_companies
+    )
+
+    analysis_type = st.sidebar.radio(
+        "차트 스타일 선택",
