@@ -71,7 +71,6 @@ for comp in tickers.keys():
 if df.empty or not available_companies:
     st.error("⚠️ 데이터를 불러오지 못했습니다. 잠시 후 다시 시도하거나 앱을 Reboot 해주세요.")
 else:
-    # 💡 괄호가 완벽하게 닫히도록 구조를 정돈했습니다.
     selected_companies = st.sidebar.multiselect(
         "시각화할 기업 선택",
         options=available_companies,
@@ -102,4 +101,23 @@ else:
                     delta_price = current_price - prev_price
                     delta_percent = (delta_price / prev_price) * 100
                     
-                    currency = "₩" if "삼성" in company or "하이닉스" in company
+                    # 💡 에러가 났던 삼항 연산자(if-else) 구문을 완벽하게 한 줄로 수정했습니다.
+                    currency = "₩" if ("삼성" in company or "하이닉스" in company) else "$"
+                    display_value = f"{currency} {current_price:,.0f}" if currency == "₩" else f"{currency} {current_price:,.2f}"
+                    
+                    with cols[i]:
+                        st.metric(
+                            label=company,
+                            value=display_value,
+                            delta=f"{delta_percent:+.2f}% (전일 대비)"
+                        )
+        st.markdown("---")
+
+        # ----------------- 인터랙티브 Plotly 차트 -----------------
+        if analysis_type == "상대 플랫 비교 (누적 수익률 %)":
+            fig = go.Figure()
+            for company in valid_companies:
+                comp_data = df[company].dropna()
+                if not comp_data.empty:
+                    first_price = float(comp_data.iloc[0])
+                    returns = ((comp_data - first
